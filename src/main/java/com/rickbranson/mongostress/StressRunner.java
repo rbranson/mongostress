@@ -47,7 +47,7 @@ public class StressRunner
         this.session = session;
     }
 
-    private void prepare()
+    private void prepare() throws Exception
     {
         String op = session.getOperation();
 
@@ -141,7 +141,7 @@ public class StressRunner
                 long reqTimeDelta           = reqTotalTime - lastReqTotalTime;
                 double reqTimeDeltaSeconds  = (double)reqTimeDelta / (1000 * 1000);
                 double totalSeconds         = (double)(System.nanoTime() - startTs) / (1000 * 1000 * 1000);
-                double latencyDelta         = reqDelta == 0 ? reqTimeDeltaSeconds : reqTimeDeltaSeconds / reqDelta;
+                double latencyDelta         = reqDelta == 0 ? totalSeconds : reqTimeDeltaSeconds / reqDelta;
 
                 System.out.println(String.format("%d,%d,%.6f,%.1f", total, reqDelta / interval, latencyDelta, totalSeconds));
 
