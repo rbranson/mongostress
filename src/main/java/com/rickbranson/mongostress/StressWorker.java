@@ -70,8 +70,7 @@ public class StressWorker
 
                     task.perform(worker);
 
-                    latency = (System.nanoTime() - beforeTime) / (1000 * 1000 * 1000);
-                    session.reportRequestLatency(latency);
+                    session.reportRequestLatency(System.nanoTime() - beforeTime);
                 }
 
                 connection.close();

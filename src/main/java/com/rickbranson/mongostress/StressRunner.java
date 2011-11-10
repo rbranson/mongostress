@@ -88,6 +88,8 @@ public class StressRunner
         long lastReqTotalTime = 0;
         int lastTotal = 0;
 
+        System.out.println("total,interval_op_rate,avg_latency,elapsed_time");
+
         while (!terminate)
         {
             Thread.sleep(sleepTime);
@@ -117,20 +119,16 @@ public class StressRunner
                 long reqTotalTime = session.getTotalRequestMicroseconds();
 
                 int reqDelta = total - lastTotal;
+                long reqTimeDelta = reqTotalTime - lastReqTotalTime;
+                double reqTimeDeltaSeconds = (double)reqTimeDelta / (1000 * 1000);
                 double totalSeconds = (double)(System.nanoTime() - startTs) / (1000 * 1000 * 1000);
 
-                System.out.println(String.format("%d,%.4f,%.1f", total, (double)reqDelta / interval, totalSeconds));
+                System.out.println(String.format("%d,%d,%.6f,%.1f", total, reqDelta / interval, reqTimeDeltaSeconds / reqDelta, totalSeconds));
 
                 lastTotal = total;
                 lastReqTotalTime = reqTotalTime;
             }
         }
-
-        //double totalSeconds = (double)(System.nanoTime() - startTs) / (1000 * 1000 * 1000);
-        //double reqRate = totalRequests / totalSeconds;
-        //DecimalFormat df = new DecimalFormat("#.##");
-
-        //System.out.println("Inserted " + totalRequests + " in " + df.format(totalSeconds) + ", " + df.format(reqRate) + "req/s");
     }
 }
 
