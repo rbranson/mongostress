@@ -1,0 +1,25 @@
+#!/bin/bash
+
+BASE_DIR=`dirname $0`
+JAR_FILE=$BASE_DIR/../target/mongostress-*-jar-with-dependencies.jar
+
+EXPANDED_JAR=`ls $JAR_FILE`
+
+if [ "$?" != "0" ]; then
+    echo "Please build mongostress (run: mvn assembly:assembly)" >&2
+    exit 1
+fi
+
+if [ -x $JAVA_HOME/bin/java ]; then
+    JAVA=$JAVA_HOME/bin/java
+else
+    JAVA=`which java`
+fi
+
+if [ "x$JAVA" = "x" ]; then
+    echo "Java executable not found (hint: set JAVA_HOME)" >&2
+    exit 1
+fi
+
+$JAVA -server -Xmx1024m -Xms256m -jar $JAR_FILE $@ 
+
