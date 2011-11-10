@@ -38,73 +38,92 @@ import com.mongodb.*;
 
 public class StressRunner
 {
+    public static final int SLEEP_TICK_TIME = 25;
     private final Session session;
     private volatile boolean statusRunning = true;
 
     public StressRunner(final Session session)
     {
         this.session = session;
-        
     }
 
-    public void clearCollection() throws java.net.UnknownHostException
+    private void prepare()
     {
-        final Mongo m = session.createConnection();
-        final DBCollection coll = session.getCollection(m);
+        String op = session.getOperation();
+
+        if (op.equalsIgnoreCase("INSERT"))
+        {
+            InsertTask.prepare(session);
+        }
+        else if (op.equalsIgnoreCase("READ"))
+        {
+            GetTask.prepare(session);
+        }
+    }
+
+    private StressTask nextTask() throws Exception
+    {
+        String op = session.getOperation();
+
+        if (op.equalsIgnoreCase("INSERT"))
+        {
+            return new InsertTask(session.nextObject());
+        }
+        else if (op.equalsIgnoreCase("READ"))
+        {
+            return new GetTask();
+        }
+        else
+        {
+            throw new Exception("Unknown operation provided: " + op);
+        }
+    }
+
+    private boolean areWorkersDead(Collection<StressWorker> workers)
+    {
+        for (StressWorker worker : workers)
+        {
+            if (worker.isRunning())
+            {
+                return false; 
+            }
+        }
         
-        coll.drop();
-        m.close();
+        return true;
     }
 
     public void start() throws Exception
     {
         final ArrayList<StressWorker> workers = new ArrayList<StressWorker>();
 
-        int totalRequests     = session.getRequestCount();
-        int totalWorkers      = session.getThreadCount();
-        int requestsPerWorker = totalRequests / totalWorkers; 
-        int remainderRequests = totalRequests % totalWorkers; 
+        prepare();
 
-        clearCollection();
-
-        for (int i = 0; i < totalWorkers; i++)
+        for (int i = 0; i < session.getThreadCount(); i++)
         {
-            StressWorker worker = new StressWorker(session, i, new InsertTask(session.nextObject()));
-            workers.add(worker);
+            workers.add(new StressWorker(session, i, nextTask()));
         }
 
-        long startTs = System.nanoTime();
+        final long startTs        = System.nanoTime();
+        final int interval        = session.getStatusInterval();
+        final int epochIntervals  = (interval * 1000) / SLEEP_TICK_TIME; // problem? 
+
+        boolean terminate         = false;
+        int epoch                 = 0;
+        long lastReqTotalTime     = 0;
+        int lastTotal             = 0;
 
         for (StressWorker worker : workers)
         {
             worker.start();
         }
 
-        boolean terminate = false;
-        int sleepTime = 25;
-        int epoch = 0;
-        int interval = session.getStatusInterval();
-        int epochIntervals = (interval * 1000) / sleepTime; // problem? 
-        long lastReqTotalTime = 0;
-        int lastTotal = 0;
-
         System.out.println("total,interval_op_rate,avg_latency,elapsed_time");
 
         while (!terminate)
         {
-            Thread.sleep(sleepTime);
+            Thread.sleep(SLEEP_TICK_TIME);
 
-            int alive = 0;
-
-            for (StressWorker worker : workers)
-            {
-                if (worker.isRunning())
-                {
-                    alive++;
-                }
-            }
-
-            if (alive == 0)
+            if (areWorkersDead(workers))
             {
                 terminate = true;
             }
@@ -115,15 +134,16 @@ public class StressRunner
             {
                 epoch = 0;
 
-                int total = session.getExecutedRequestCount();
+                int total         = session.getExecutedRequestCount();
                 long reqTotalTime = session.getTotalRequestMicroseconds();
 
-                int reqDelta = total - lastTotal;
-                long reqTimeDelta = reqTotalTime - lastReqTotalTime;
-                double reqTimeDeltaSeconds = (double)reqTimeDelta / (1000 * 1000);
-                double totalSeconds = (double)(System.nanoTime() - startTs) / (1000 * 1000 * 1000);
+                int reqDelta                = total - lastTotal;
+                long reqTimeDelta           = reqTotalTime - lastReqTotalTime;
+                double reqTimeDeltaSeconds  = (double)reqTimeDelta / (1000 * 1000);
+                double totalSeconds         = (double)(System.nanoTime() - startTs) / (1000 * 1000 * 1000);
+                double latencyDelta         = reqDelta == 0 ? reqTimeDeltaSeconds : reqTimeDeltaSeconds / reqDelta;
 
-                System.out.println(String.format("%d,%d,%.6f,%.1f", total, reqDelta / interval, reqTimeDeltaSeconds / reqDelta, totalSeconds));
+                System.out.println(String.format("%d,%d,%.6f,%.1f", total, reqDelta / interval, latencyDelta, totalSeconds));
 
                 lastTotal = total;
                 lastReqTotalTime = reqTotalTime;

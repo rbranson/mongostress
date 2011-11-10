@@ -41,16 +41,19 @@ public class StressWorker
     private final Thread thread;
     private final Mongo connection;
     private final DBCollection coll;
+    private final Session session;
     private final int id;
     private int counter = 0;
+    private static final Random rng = new Random();
 
     public StressWorker(final Session session, final int threadId, final StressTask task) throws java.net.UnknownHostException
     {
         final StressWorker worker = this;
 
-        connection  = session.createConnection();
-        coll        = session.getCollection(connection); 
-        id          = threadId;
+        this.session  = session;
+        connection    = session.createConnection();
+        coll          = session.getCollection(connection); 
+        id            = threadId;
 
         thread = new Thread(new Runnable()
         {
@@ -76,6 +79,16 @@ public class StressWorker
                 connection.close();
             }
         });
+    }
+
+    public String currentRequestKey()
+    {
+        return getId() + "_" + currentRequestId();
+    }
+
+    public String randomRequestKey()
+    {
+        return getId() + "_" + rng.nextInt(session.getRequestCount() / session.getThreadCount());
     }
 
     public int getId()

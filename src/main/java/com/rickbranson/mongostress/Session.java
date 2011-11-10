@@ -51,6 +51,7 @@ public class Session
         availableOptions.addOption("p", "port",               true,   "Host port, default:27017");
         availableOptions.addOption("n", "num-keys",           true,   "Number of documents, default:1000000");
         availableOptions.addOption("i", "progress-interval",  true,   "Progress interval, default:10");
+        availableOptions.addOption("o", "operation",          true,   "Operation to perform (INSERT, READ), default:INSERT");
         availableOptions.addOption("c", "columns",            true,   "Number of fields per document, default:5");
         availableOptions.addOption("S", "column-size",        true,   "Size of field values in bytes, default:34");
         availableOptions.addOption("t", "threads",            true,   "Number of threads to use, default:50");
@@ -63,6 +64,7 @@ public class Session
     private int optCount = 0;
     private int optPort = 0;
     private int optInterval = 0;
+    private String optOperation = "";
     private int optColumns = 0;
     private int optColumnSize = 0;
     private int optThreads = 0;
@@ -88,6 +90,7 @@ public class Session
             optPort           = cmd.hasOption("p") ? Integer.parseInt(cmd.getOptionValue("p"))  : 27017;
             optCount          = cmd.hasOption("n") ? Integer.parseInt(cmd.getOptionValue("n"))  : 1000000;
             optInterval       = cmd.hasOption("i") ? Integer.parseInt(cmd.getOptionValue("i"))  : 10;
+            optOperation      = cmd.hasOption("o") ? cmd.getOptionValue("o")                    : "INSERT";
             optColumns        = cmd.hasOption("c") ? Integer.parseInt(cmd.getOptionValue("c"))  : 5;
             optColumnSize     = cmd.hasOption("S") ? Integer.parseInt(cmd.getOptionValue("S"))  : 34;
             optThreads        = cmd.hasOption("t") ? Integer.parseInt(cmd.getOptionValue("t"))  : 50;
@@ -197,6 +200,11 @@ public class Session
     public int getStatusInterval()
     {
         return optInterval;
+    }
+
+    public String getOperation()
+    {
+        return optOperation;
     }
 
     public boolean incrementExecutionCounter()

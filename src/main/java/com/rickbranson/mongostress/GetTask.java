@@ -27,27 +27,19 @@
 
 package com.rickbranson.mongostress;
 
-import com.mongodb.*;
-
-class InsertTask implements StressTask
+public class GetTask implements StressTask 
 {
-    final BasicDBObject dbObject;
-
-    public InsertTask(BasicDBObject obj)
+    public GetTask()
     {
-        dbObject = obj;
     }
 
-    public static void prepare(Session session) throws Exception
+    public static void prepare(Session session)
     {
-        Mongo m = session.createConnection();
-        session.getCollection(m).drop();
-        m.close();
     }
 
     public void perform(StressWorker context)
     {
-        dbObject.put("_id", context.currentRequestKey());
-        context.getCollection().insert(dbObject);
+        context.getCollection().findOne(context.randomRequestKey());
     }
 }
+
